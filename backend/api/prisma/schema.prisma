@@ -1,0 +1,684 @@
+// Luxury Fitness Gym: PostgreSQL schema.
+// Conventions: UUID PKs, money in integer paise, timestamps on every table,
+// soft delete (deleted_at) only where noted, tenant data carries branch_id.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────── Enums ─────────
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+  BLOCKED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  UNSPECIFIED
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  FROZEN
+  EXPIRED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  REFUNDED
+  FAILED
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  CARD
+  ONLINE
+}
+
+enum TransactionType {
+  CHARGE
+  REFUND
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum AttendanceMethod {
+  QR
+  MANUAL
+}
+
+enum EnquirySource {
+  WEBSITE
+  WHATSAPP
+  WALKIN
+  OTHER
+}
+
+enum EnquiryStatus {
+  NEW
+  CONTACTED
+  TRIAL_BOOKED
+  CONVERTED
+  LOST
+}
+
+enum TrialStatus {
+  SCHEDULED
+  ATTENDED
+  NO_SHOW
+  CANCELLED
+}
+
+enum NotificationType {
+  EXPIRY_REMINDER
+  RENEWAL_REMINDER
+  PAYMENT_REMINDER
+  ANNOUNCEMENT
+  SYSTEM
+}
+
+enum DevicePlatform {
+  IOS
+  ANDROID
+}
+
+// ───────── Tenancy & identity ─────────
+model GymBranch {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  address   String?
+  phone     String?
+  timezone  String   @default("Asia/Kolkata")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users         User[]
+  members       Member[]
+  plans         MembershipPlan[]
+  attendance    Attendance[]
+  enquiries     Enquiry[]
+  announcements Announcement[]
+
+  @@map("gym_branches")
+}
+
+model Role {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique // OWNER | ADMIN | TRAINER | MEMBER
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique // e.g. members:read
+  description String?
+  createdAt   DateTime @default(now())
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String     @db.Uuid
+  permissionId String     @db.Uuid
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  branchId     String?    @db.Uuid
+  email        String?    @unique
+  phone        String?    @unique
+  passwordHash String? // staff only (argon2id)
+  status       UserStatus @default(ACTIVE)
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+
+  branch        GymBranch?     @relation(fields: [branchId], references: [id])
+  roles         UserRole[]
+  member        Member?
+  trainer       Trainer?
+  refreshTokens RefreshToken[]
+  devices       DeviceToken[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+
+  @@index([branchId])
+  @@map("users")
+}
+
+model UserRole {
+  userId String @db.Uuid
+  roleId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  familyId  String    @db.Uuid // rotation family; reuse of a revoked token revokes the family
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  userAgent String?
+  ip        String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+model OtpCode {
+  id         String    @id @default(uuid()) @db.Uuid
+  target     String // phone or email
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([target, createdAt])
+  @@map("otp_codes")
+}
+
+model DeviceToken {
+  id        String         @id @default(uuid()) @db.Uuid
+  userId    String         @db.Uuid
+  token     String         @unique
+  platform  DevicePlatform
+  createdAt DateTime       @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("device_tokens")
+}
+
+// ───────── Members & trainers ─────────
+model Member {
+  id                    String       @id @default(uuid()) @db.Uuid
+  userId                String       @unique @db.Uuid
+  branchId              String       @db.Uuid
+  memberCode            String // unique per branch
+  name                  String
+  dateOfBirth           DateTime?    @db.Date
+  gender                Gender       @default(UNSPECIFIED)
+  address               String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  photoKey              String?
+  status                MemberStatus @default(ACTIVE)
+  joinedOn              DateTime     @default(now()) @db.Date
+  qrSecret              String // per-member secret for signed QR tokens
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  deletedAt             DateTime?
+
+  user          User                 @relation(fields: [userId], references: [id])
+  branch        GymBranch            @relation(fields: [branchId], references: [id])
+  subscriptions MemberSubscription[]
+  payments      Payment[]
+  attendance    Attendance[]
+  assignments   TrainerAssignment[]
+  workouts      WorkoutAssignment[]
+  diets         DietAssignment[]
+  measurements  BodyMeasurement[]
+  enquiry       Enquiry?
+
+  @@unique([branchId, memberCode])
+  @@index([branchId, status])
+  @@map("members")
+}
+
+model Trainer {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @unique @db.Uuid
+  name            String
+  qualifications  String?
+  specializations String[]
+  experienceYears Int?
+  bio             String?
+  photoKey        String?
+  availability    Json?
+  isPublic        Boolean   @default(true) // shown on website
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  user        User                @relation(fields: [userId], references: [id])
+  assignments TrainerAssignment[]
+  workouts    WorkoutPlan[]
+  diets       DietPlan[]
+
+  @@map("trainers")
+}
+
+model TrainerAssignment {
+  id        String    @id @default(uuid()) @db.Uuid
+  trainerId String    @db.Uuid
+  memberId  String    @db.Uuid
+  startsOn  DateTime  @default(now()) @db.Date
+  endsOn    DateTime? @db.Date
+  createdAt DateTime  @default(now())
+
+  trainer Trainer @relation(fields: [trainerId], references: [id])
+  member  Member  @relation(fields: [memberId], references: [id])
+
+  @@index([trainerId])
+  @@index([memberId])
+  @@map("trainer_assignments")
+}
+
+// ───────── Memberships & payments ─────────
+model MembershipPlan {
+  id           String    @id @default(uuid()) @db.Uuid
+  branchId     String    @db.Uuid
+  name         String
+  durationDays Int
+  pricePaise   Int
+  taxPercent   Decimal   @default(0) @db.Decimal(5, 2)
+  features     Json?
+  isActive     Boolean   @default(true)
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  branch        GymBranch            @relation(fields: [branchId], references: [id])
+  subscriptions MemberSubscription[]
+
+  @@index([branchId, isActive])
+  @@map("membership_plans")
+}
+
+model MemberSubscription {
+  id                   String             @id @default(uuid()) @db.Uuid
+  memberId             String             @db.Uuid
+  planId               String             @db.Uuid
+  startDate            DateTime           @db.Date
+  endDate              DateTime           @db.Date
+  status               SubscriptionStatus @default(PENDING)
+  pricePaiseSnapshot   Int // price at time of sale
+  frozenFrom           DateTime?          @db.Date
+  frozenTo             DateTime?          @db.Date
+  cancelledAt          DateTime?
+  cancelReason         String?
+  parentSubscriptionId String?            @db.Uuid // renewal chain
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  member   Member               @relation(fields: [memberId], references: [id])
+  plan     MembershipPlan       @relation(fields: [planId], references: [id])
+  parent   MemberSubscription?  @relation("RenewalChain", fields: [parentSubscriptionId], references: [id])
+  renewals MemberSubscription[] @relation("RenewalChain")
+  payments Payment[]
+
+  @@index([memberId, status])
+  @@index([endDate])
+  @@map("member_subscriptions")
+}
+
+model Payment {
+  id              String        @id @default(uuid()) @db.Uuid
+  memberId        String        @db.Uuid
+  subscriptionId  String?       @db.Uuid
+  amountDuePaise  Int
+  amountPaidPaise Int           @default(0)
+  status          PaymentStatus @default(PENDING)
+  receiptNo       String?       @unique
+  idempotencyKey  String        @unique
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  member       Member               @relation(fields: [memberId], references: [id])
+  subscription MemberSubscription?  @relation(fields: [subscriptionId], references: [id])
+  transactions PaymentTransaction[]
+
+  @@index([memberId])
+  @@index([status])
+  @@map("payments")
+}
+
+// Append-only ledger. No card data is ever stored.
+model PaymentTransaction {
+  id                String            @id @default(uuid()) @db.Uuid
+  paymentId         String            @db.Uuid
+  method            PaymentMethod
+  type              TransactionType   @default(CHARGE)
+  amountPaise       Int
+  status            TransactionStatus @default(PENDING)
+  gateway           String? // 'razorpay'
+  gatewayOrderId    String?
+  gatewayPaymentId  String?           @unique
+  signatureVerified Boolean           @default(false)
+  rawEvent          Json?
+  recordedById      String?           @db.Uuid
+  createdAt         DateTime          @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId])
+  @@index([gatewayOrderId])
+  @@map("payment_transactions")
+}
+
+// ───────── Attendance ─────────
+model Attendance {
+  id           String           @id @default(uuid()) @db.Uuid
+  memberId     String           @db.Uuid
+  branchId     String           @db.Uuid
+  localDate    DateTime         @db.Date // branch-local calendar day
+  checkInAt    DateTime         @default(now())
+  checkOutAt   DateTime?
+  method       AttendanceMethod
+  recordedById String?          @db.Uuid
+  createdAt    DateTime         @default(now())
+
+  member Member    @relation(fields: [memberId], references: [id])
+  branch GymBranch @relation(fields: [branchId], references: [id])
+
+  // One check-in per member per local day: blocks duplicates at the DB level.
+  @@unique([memberId, localDate])
+  @@index([branchId, checkInAt])
+  @@map("attendance")
+}
+
+// ───────── Leads ─────────
+model Enquiry {
+  id                String        @id @default(uuid()) @db.Uuid
+  branchId          String        @db.Uuid
+  name              String
+  phone             String
+  email             String?
+  message           String?
+  source            EnquirySource @default(WEBSITE)
+  status            EnquiryStatus @default(NEW)
+  followUpAt        DateTime?
+  assignedToId      String?       @db.Uuid
+  convertedMemberId String?       @unique @db.Uuid
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  branch          GymBranch      @relation(fields: [branchId], references: [id])
+  convertedMember Member?        @relation(fields: [convertedMemberId], references: [id])
+  trials          TrialBooking[]
+
+  @@index([branchId, status])
+  @@index([status, followUpAt])
+  @@map("enquiries")
+}
+
+model TrialBooking {
+  id          String      @id @default(uuid()) @db.Uuid
+  enquiryId   String      @db.Uuid
+  scheduledAt DateTime
+  status      TrialStatus @default(SCHEDULED)
+  goal        String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  enquiry Enquiry @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+
+  @@index([scheduledAt])
+  @@map("trial_bookings")
+}
+
+// ───────── Workouts & diets ─────────
+model Exercise {
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String    @unique
+  muscleGroup  String?
+  equipment    String?
+  instructions String?
+  videoUrl     String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  planExercises WorkoutPlanExercise[]
+
+  @@map("exercises")
+}
+
+model WorkoutPlan {
+  id         String    @id @default(uuid()) @db.Uuid
+  trainerId  String?   @db.Uuid
+  name       String
+  isTemplate Boolean   @default(false)
+  notes      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  trainer     Trainer?            @relation(fields: [trainerId], references: [id])
+  days        WorkoutPlanDay[]
+  assignments WorkoutAssignment[]
+
+  @@map("workout_plans")
+}
+
+model WorkoutPlanDay {
+  id       String  @id @default(uuid()) @db.Uuid
+  planId   String  @db.Uuid
+  dayIndex Int // 1..7
+  title    String?
+
+  plan      WorkoutPlan           @relation(fields: [planId], references: [id], onDelete: Cascade)
+  exercises WorkoutPlanExercise[]
+
+  @@unique([planId, dayIndex])
+  @@map("workout_plan_days")
+}
+
+model WorkoutPlanExercise {
+  id          String  @id @default(uuid()) @db.Uuid
+  dayId       String  @db.Uuid
+  exerciseId  String  @db.Uuid
+  position    Int
+  sets        Int
+  reps        String // "8-10", "AMRAP"
+  restSeconds Int?
+  notes       String?
+
+  day      WorkoutPlanDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  exercise Exercise       @relation(fields: [exerciseId], references: [id])
+
+  @@index([dayId, position])
+  @@map("workout_plan_exercises")
+}
+
+model WorkoutAssignment {
+  id        String    @id @default(uuid()) @db.Uuid
+  memberId  String    @db.Uuid
+  planId    String    @db.Uuid
+  startsOn  DateTime  @default(now()) @db.Date
+  endsOn    DateTime? @db.Date
+  createdAt DateTime  @default(now())
+
+  member   Member           @relation(fields: [memberId], references: [id])
+  plan     WorkoutPlan      @relation(fields: [planId], references: [id])
+  sessions WorkoutSession[]
+
+  @@index([memberId])
+  @@map("workout_assignments")
+}
+
+model WorkoutSession {
+  id           String    @id @default(uuid()) @db.Uuid
+  assignmentId String    @db.Uuid
+  dayIndex     Int
+  completedAt  DateTime?
+  notes        String?
+  createdAt    DateTime  @default(now())
+
+  assignment WorkoutAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([assignmentId])
+  @@map("workout_sessions")
+}
+
+model DietPlan {
+  id           String    @id @default(uuid()) @db.Uuid
+  trainerId    String?   @db.Uuid
+  name         String
+  isTemplate   Boolean   @default(false)
+  meals        Json // [{ name, time, items, notes }]
+  instructions String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  trainer     Trainer?         @relation(fields: [trainerId], references: [id])
+  assignments DietAssignment[]
+
+  @@map("diet_plans")
+}
+
+model DietAssignment {
+  id        String    @id @default(uuid()) @db.Uuid
+  memberId  String    @db.Uuid
+  planId    String    @db.Uuid
+  startsOn  DateTime  @default(now()) @db.Date
+  endsOn    DateTime? @db.Date
+  createdAt DateTime  @default(now())
+
+  member Member   @relation(fields: [memberId], references: [id])
+  plan   DietPlan @relation(fields: [planId], references: [id])
+
+  @@index([memberId])
+  @@map("diet_assignments")
+}
+
+model BodyMeasurement {
+  id           String   @id @default(uuid()) @db.Uuid
+  memberId     String   @db.Uuid
+  measuredOn   DateTime @db.Date
+  weightKg     Decimal? @db.Decimal(5, 2)
+  chestCm      Decimal? @db.Decimal(5, 1)
+  waistCm      Decimal? @db.Decimal(5, 1)
+  hipsCm       Decimal? @db.Decimal(5, 1)
+  armsCm       Decimal? @db.Decimal(5, 1)
+  thighsCm     Decimal? @db.Decimal(5, 1)
+  photoKeys    String[]
+  recordedById String?  @db.Uuid
+  createdAt    DateTime @default(now())
+
+  member Member @relation(fields: [memberId], references: [id])
+
+  @@index([memberId, measuredOn])
+  @@map("body_measurements")
+}
+
+// ───────── Comms, content, audit ─────────
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  type      NotificationType
+  title     String
+  body      String
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model Announcement {
+  id          String    @id @default(uuid()) @db.Uuid
+  branchId    String?   @db.Uuid
+  title       String
+  body        String
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  branch GymBranch? @relation(fields: [branchId], references: [id])
+
+  @@map("announcements")
+}
+
+model GalleryItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  category  String
+  imageKey  String
+  caption   String?
+  sortOrder Int      @default(0)
+  isPublic  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("gallery_items")
+}
+
+model SiteSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+// Append-only record of important administrative actions.
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  actorId   String?  @db.Uuid
+  action    String // e.g. member.update
+  entity    String
+  entityId  String?
+  before    Json?
+  after     Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@index([entity, entityId])
+  @@index([actorId, createdAt])
+  @@map("audit_logs")
+}

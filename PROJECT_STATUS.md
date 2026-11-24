@@ -12,6 +12,8 @@ Last updated: 2026-11-24
 Phases 2–6 (backend, admin, mobile, trainer/advanced, testing/production).
 
 ## Known issues / blockers
+- Backend has never touched a real database: migrations, constraints and auth flows are unverified end to end.
+- No production SMS provider: OTP uses a dev console sender and the API refuses to boot in production until a real SmsSender exists.
 - Real business data not yet provided (Instagram URL, address, phone, WhatsApp, hours, photos, prices, trainers). All such content in the site is **placeholder** and centralised in `apps/website/src/content/site.ts`, flagged `PLACEHOLDER`.
 - No real photography: temporary neutral panels are used and labelled.
 

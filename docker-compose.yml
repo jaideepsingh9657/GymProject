@@ -1,0 +1,16 @@
+# Local development stack. Production uses separate env files and managed secrets.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: lfg
+      POSTGRES_PASSWORD: lfg
+      POSTGRES_DB: lfg
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lfg"]
+      interval: 5s
+      retries: 10
+volumes:
+  pgdata:
