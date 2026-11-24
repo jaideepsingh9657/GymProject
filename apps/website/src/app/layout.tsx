@@ -4,6 +4,8 @@ import "./globals.css";
 import { site } from "@/content/site";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SmoothScroll from "@/components/motion/SmoothScroll";
+import ScrollProgress from "@/components/motion/ScrollProgress";
 
 const display = Cormorant_Garamond({
   subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-display", display: "swap",
@@ -26,6 +28,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-gold focus:px-4 focus:py-2 focus:text-ink">
           Skip to content
         </a>
+        <SmoothScroll />
+        <ScrollProgress />
         <Header />
         <main id="main">{children}</main>
         <Footer />

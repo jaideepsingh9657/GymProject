@@ -66,3 +66,43 @@ export const testimonials = [
   { quote: "Sample testimonial: replace with a real member review.", who: "Sample Member" },
   { quote: "Sample testimonial: replace with a real member review.", who: "Sample Member" },
 ];
+
+// PLACEHOLDER marquee / stats: replace with verified figures only.
+export const marquee = ["Strength", "Conditioning", "Mobility", "Coaching", "Discipline", "Performance"];
+export const stats = [
+  { to: 24, suffix: "+", label: "Sample stat: years / members / coaches" },
+  { to: 1200, suffix: "+", label: "Sample stat" },
+  { to: 15, suffix: "", label: "Sample stat" },
+  { to: 6, suffix: "", label: "Days open per week" },
+];
+
+export const facilityDetails = [
+  { title: "Strength Floor", body: "Power racks, lifting platforms, dumbbells to heavy and plate-loaded machines laid out so nobody waits.", points: ["Free weights", "Platforms", "Plate-loaded machines"] },
+  { title: "Cardio Studio", body: "Modern treadmills, cross-trainers and bikes in a ventilated, well-lit space.", points: ["Treadmills", "Cross-trainers", "Bikes"] },
+  { title: "Functional Zone", body: "Open turf for sleds, kettlebells, battle ropes and athletic conditioning.", points: ["Turf lane", "Kettlebells", "Conditioning rigs"] },
+  { title: "Personal Training", body: "One-to-one coaching with structured programming and tracked progress.", points: ["Assessment", "Custom program", "Progress tracking"] },
+  { title: "Recovery & Mobility", body: "Stretching and mobility area for warm-ups and cool-downs.", points: ["Mats", "Foam rollers", "Mobility tools"] },
+  { title: "Changing & Lockers", body: "Clean changing rooms and secure lockers.", points: ["Lockers", "Showers", "Water"] },
+];
+
+export const comparison = {
+  head: ["Benefit", "Monthly", "Quarterly", "Half-Yearly", "Annual"],
+  rows: [
+    ["Full gym access", true, true, true, true],
+    ["Locker", true, true, true, true],
+    ["Member app & QR entry", true, true, true, true],
+    ["Body assessment", false, true, true, true],
+    ["Personal training sessions", "—", "—", "2", "4"],
+    ["Diet guidance", false, false, true, true],
+    ["Priority booking", false, false, false, true],
+  ] as (string | boolean)[][],
+};
+
+export const gallery = [
+  { cat: "Interior", label: "Main floor" }, { cat: "Equipment", label: "Racks" },
+  { cat: "Training", label: "Coaching" }, { cat: "Events", label: "Challenge day" },
+  { cat: "Interior", label: "Lobby" }, { cat: "Equipment", label: "Dumbbells" },
+  { cat: "Transformations", label: "Member story" }, { cat: "Training", label: "Group session" },
+  { cat: "Interior", label: "Cardio" }, { cat: "Events", label: "Community" },
+  { cat: "Transformations", label: "Member story 2" }, { cat: "Equipment", label: "Machines" },
+];

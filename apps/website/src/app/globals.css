@@ -31,8 +31,8 @@ body {
   .card { @apply border border-line bg-charcoal; }
 }
 
-.reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }
-.reveal.in { opacity: 1; transform: none; }
+
+
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
