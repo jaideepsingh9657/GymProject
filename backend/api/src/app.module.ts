@@ -11,6 +11,18 @@ import { validateEnv } from "./config/env";
 import { HealthController } from "./health/health.controller";
 import { PrismaModule } from "./prisma/prisma.service";
 import { RbacModule } from "./rbac/rbac.module";
+import { AttendanceController } from "./attendance/attendance.controller";
+import { AttendanceService } from "./attendance/attendance.service";
+import { DashboardController } from "./dashboard/dashboard.controller";
+import { DashboardService } from "./dashboard/dashboard.service";
+import { MembersController } from "./members/members.controller";
+import { MembersService } from "./members/members.service";
+import { PaymentsController } from "./payments/payments.controller";
+import { PaymentsService } from "./payments/payments.service";
+import { PlansController } from "./plans/plans.controller";
+import { PlansService } from "./plans/plans.service";
+import { SubscriptionsController } from "./subscriptions/subscriptions.controller";
+import { SubscriptionsService } from "./subscriptions/subscriptions.service";
 
 @Module({
   imports: [
@@ -22,11 +34,16 @@ import { RbacModule } from "./rbac/rbac.module";
         autoLogging: { ignore: (req) => req.url?.endsWith("/health") ?? false },
       },
     }),
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60_000, limit: 100 }],
+      // Test-only escape hatch; never set outside NODE_ENV=test (see throttle.e2e-spec.ts for the real limits).
+      skipIf: () => process.env.NODE_ENV === "test" && process.env.DISABLE_THROTTLE === "1",
+    }),
     PrismaModule, AuditModule, RbacModule, AuthModule,
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, PlansController, MembersController, SubscriptionsController, PaymentsController, AttendanceController, DashboardController],
   providers: [
+    PlansService, MembersService, SubscriptionsService, PaymentsService, AttendanceService, DashboardService,
     // Order matters: rate-limit, then authenticate, then authorize.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },

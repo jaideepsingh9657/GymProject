@@ -1,19 +1,16 @@
 import { PrismaClient } from "@prisma/client";
 import * as argon2 from "argon2";
 
-const db = new PrismaClient();
 
 const PERMISSIONS: Record<string, string[]> = {
   OWNER: ["*"],
-  ADMIN: ["members:read", "members:write", "plans:read", "subscriptions:write", "payments:read", "payments:write", "attendance:read", "attendance:write", "enquiries:read", "enquiries:write", "trainers:read", "announcements:write"],
+  ADMIN: ["members:read", "members:write", "plans:read", "subscriptions:write", "payments:read", "payments:write", "attendance:read", "attendance:write", "dashboard:read", "enquiries:read", "enquiries:write", "trainers:read", "announcements:write"],
   TRAINER: ["members:read:assigned", "workouts:read", "workouts:write", "diets:read", "diets:write", "progress:write", "exercises:read", "exercises:write"],
   MEMBER: ["self:read", "self:write"],
 };
-const ALL = [...new Set(Object.values(PERMISSIONS).flat().filter((p) => p !== "*")), "plans:write", "payments:refund", "reports:read", "settings:write", "users:manage", "audit:read", "trainers:write"];
+const ALL = [...new Set(Object.values(PERMISSIONS).flat().filter((p) => p !== "*")), "plans:write", "dashboard:read", "payments:refund", "reports:read", "settings:write", "users:manage", "audit:read", "trainers:write"];
 
-async function main() {
-  const email = process.env.SEED_OWNER_EMAIL;
-  const password = process.env.SEED_OWNER_PASSWORD;
+export async function seed(db: PrismaClient, email?: string, password?: string) {
   if (!email || !password || password.length < 12) throw new Error("Set SEED_OWNER_EMAIL and SEED_OWNER_PASSWORD (min 12 chars)");
 
   const branch = (await db.gymBranch.findFirst()) ?? (await db.gymBranch.create({ data: { name: "Luxury Fitness Gym (main)" } }));
@@ -35,7 +32,12 @@ async function main() {
     create: { email: email.toLowerCase(), passwordHash: await argon2.hash(password), branchId: branch.id },
   });
   await db.userRole.upsert({ where: { userId_roleId: { userId: owner.id, roleId: ownerRole.id } }, update: {}, create: { userId: owner.id, roleId: ownerRole.id } });
-  console.log(`Seeded branch, roles, permissions and owner ${owner.email}`);
+  return { branch, owner };
 }
 
-main().finally(() => db.$disconnect());
+if (require.main === module) {
+  const db = new PrismaClient();
+  seed(db, process.env.SEED_OWNER_EMAIL, process.env.SEED_OWNER_PASSWORD)
+    .then((r) => console.log(`Seeded branch, roles, permissions and owner ${r.owner.email}`))
+    .finally(() => db.$disconnect());
+}
