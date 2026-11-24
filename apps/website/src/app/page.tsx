@@ -5,6 +5,10 @@ import { useRef } from "react";
 import Reveal from "@/components/Reveal";
 import CtaBand from "@/components/CtaBand";
 import { PhotoPlaceholder, SectionHead } from "@/components/Section";
+import Icon, { facilityIcon, type IconName } from "@/components/Icon";
+import PhoneMockup from "@/components/PhoneMockup";
+import Image from "next/image";
+import { stock } from "@/content/images";
 import PlanCards from "@/components/PlanCards";
 import Marquee from "@/components/motion/Marquee";
 import Magnetic from "@/components/motion/Magnetic";
@@ -20,9 +24,12 @@ export default function Home() {
       <Intro />
       <Stats />
       <Facilities />
+      <PhotoBand />
+      <HowItWorks />
       <Why />
       <Trainers />
       <Plans />
+      <AppShowcase />
       <Testimonials />
       <Social />
       <Contact />
@@ -35,15 +42,15 @@ export default function Home() {
 function Hero() {
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
   const fade = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
   return (
     <section ref={ref} className="relative flex min-h-[100svh] items-end overflow-hidden pb-20 pt-32 sm:items-center sm:pb-0">
-      <motion.div style={{ y: bgY }} className="absolute inset-0 -top-10" aria-hidden>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_30%,#3a2f12_0%,#0a0a0a_62%)]" />
-        <div className="absolute -right-40 top-10 h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle,rgba(201,162,75,0.28)_0%,transparent_70%)]" />
+      <div className="absolute inset-0" aria-hidden>
+        <Image src={stock["Club interior"]} alt="" fill priority sizes="100vw" className="object-cover opacity-40" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_30%,rgba(58,47,18,0.55)_0%,rgba(10,10,10,0.85)_65%)]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-ink/60" />
         <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "repeating-linear-gradient(90deg,#f4f1ea 0 1px,transparent 1px 120px)" }} />
-      </motion.div>
+      </div>
       <motion.div style={{ opacity: fade }} className="container-x relative">
         <Reveal><p className="eyebrow">{site.city} · Premium Fitness Club</p></Reveal>
         <SplitText as="h1" immediate delay={0.2} text="Train like it matters." className="mt-6 max-w-5xl font-display text-[clamp(3.2rem,10vw,9rem)] font-medium leading-[0.92]" />
@@ -106,6 +113,7 @@ function Facilities() {
             <Reveal key={f.title} delay={i * 90} className="bg-ink">
               <PhotoPlaceholder label={f.title} className="aspect-[4/5]" />
               <div className="p-6">
+                <Icon name={facilityIcon[f.title]} className="mb-4 h-8 w-8 text-gold" />
                 <h3 className="font-display text-2xl">{f.title}</h3>
                 <p className="mt-2 text-sm text-mute">{f.body}</p>
               </div>
@@ -126,7 +134,7 @@ function Why() {
         <div className="mt-14 grid gap-10 md:grid-cols-3">
           {why.map((w, i) => (
             <Reveal key={w.n} delay={i * 120} className="border-t border-gold/50 pt-6">
-              <span className="font-display text-5xl text-gold/80">{w.n}</span>
+              <div className="flex items-center justify-between"><span className="font-display text-5xl text-gold/80">{w.n}</span><Icon name={(["coach", "chart", "trophy"] as IconName[])[i]} className="h-9 w-9 text-gold" /></div>
               <h3 className="mt-4 font-display text-2xl">{w.t}</h3>
               <p className="mt-3 text-sm text-mute">{w.b}</p>
             </Reveal>
@@ -240,4 +248,71 @@ function JsonLd() {
     address: { "@type": "PostalAddress", addressLocality: site.city, addressRegion: "Maharashtra", addressCountry: "IN" },
   };
   return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
+}
+
+function PhotoBand() {
+  return (
+    <section className="relative overflow-hidden border-y border-line py-32 sm:py-48" aria-label="Discipline">
+      <Image src={stock["gal1"]} alt="" fill sizes="100vw" className="object-cover opacity-30 grayscale" />
+      <div className="absolute inset-0 bg-gradient-to-b from-ink via-ink/40 to-ink" aria-hidden />
+      <div className="container-x relative text-center">
+        <Reveal>
+          <p className="font-display text-[clamp(3.5rem,14vw,12rem)] font-semibold leading-none tracking-tight text-transparent [-webkit-text-stroke:1px_rgb(201_162_75/0.8)]">DISCIPLINE</p>
+          <p className="mx-auto mt-6 max-w-md text-bone/70">Motivation gets you in the door. Standards keep you coming back.</p>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+function HowItWorks() {
+  const steps: { icon: IconName; t: string; b: string }[] = [
+    { icon: "calendar", t: "Book a free trial", b: "Pick a time that suits you. No pressure, no sales pitch." },
+    { icon: "clipboard", t: "Get assessed", b: "A coach reviews your goals, history and body composition." },
+    { icon: "dumbbell", t: "Train with a plan", b: "Follow a programme built for you and tracked in the app." },
+  ];
+  return (
+    <section className="py-24 sm:py-32">
+      <div className="container-x">
+        <SectionHead eyebrow="How it works" title="From first visit to first result." />
+        <div className="relative mt-16 grid gap-12 md:grid-cols-3">
+          <div className="absolute left-0 right-0 top-8 hidden h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent md:block" aria-hidden />
+          {steps.map((st, i) => (
+            <Reveal key={st.t} delay={i * 140} className="relative text-center">
+              <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-gold/60 bg-ink text-gold"><Icon name={st.icon} className="h-7 w-7" /></div>
+              <p className="mt-5 text-[11px] uppercase tracking-wider2 text-mute">Step 0{i + 1}</p>
+              <h3 className="mt-2 font-display text-2xl">{st.t}</h3>
+              <p className="mx-auto mt-3 max-w-xs text-sm text-mute">{st.b}</p>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AppShowcase() {
+  const feats: { icon: IconName; t: string; b: string }[] = [
+    { icon: "qr", t: "QR entry", b: "Your membership card on your phone." },
+    { icon: "dumbbell", t: "Today’s workout", b: "Sets, reps and notes from your coach." },
+    { icon: "chart", t: "Track progress", b: "Weight, measurements and photos over time." },
+    { icon: "bell", t: "Renewal reminders", b: "Never lose a day to an expired plan." },
+  ];
+  return (
+    <section className="overflow-hidden border-y border-line bg-charcoal py-24 sm:py-32">
+      <div className="container-x grid items-center gap-16 lg:grid-cols-2">
+        <div>
+          <SectionHead eyebrow="Member app" title="Your club, in your pocket." intro="Coming soon for iPhone and Android. Screen shown is a sample." />
+          <div className="mt-10 grid gap-6 sm:grid-cols-2">
+            {feats.map((f, i) => (
+              <Reveal key={f.t} delay={i * 90}>
+                <div><Icon name={f.icon} className="h-7 w-7 text-gold" /><p className="mt-3 font-display text-xl">{f.t}</p><p className="mt-1 text-sm text-mute">{f.b}</p></div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+        <Reveal delay={150}><PhoneMockup /></Reveal>
+      </div>
+    </section>
+  );
 }
