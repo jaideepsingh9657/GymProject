@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root, [data-theme="dark"] {
+  color-scheme: dark;
+  --c-ink: 10 10 10; --c-charcoal: 20 20 20; --c-graphite: 31 31 31; --c-line: 44 44 44;
+  --c-bone: 244 241 234; --c-mute: 163 159 150; --c-gold: 201 162 75; --c-gold-soft: 226 201 133;
+  --c-ok: 127 196 143; --c-warn: 226 178 75; --c-bad: 224 120 106;
+}
+[data-theme="light"] {
+  color-scheme: light;
+  --c-ink: 250 248 243; --c-charcoal: 241 237 228; --c-graphite: 230 225 213; --c-line: 214 207 192;
+  --c-bone: 22 20 17; --c-mute: 96 91 82; --c-gold: 138 104 24; --c-gold-soft: 171 134 45;
+  --c-ok: 31 120 60; --c-warn: 150 100 10; --c-bad: 170 50 40;
+}
+
+body { background: rgb(var(--c-ink)); color: rgb(var(--c-bone)); font-family: var(--font-sans), system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+@layer components {
+  .label { @apply text-[11px] uppercase tracking-[0.14em] text-mute; }
+  .panel { @apply border border-line bg-charcoal p-4; }
+  .btn { @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.12em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:opacity-50 disabled:pointer-events-none; }
+  .btn-gold { @apply bg-gold text-ink hover:bg-gold-soft; }
+  .btn-ghost { @apply border border-line text-bone hover:border-gold hover:text-gold; }
+  .input { @apply w-full border border-line bg-ink px-3 py-2 text-sm text-bone placeholder:text-mute/60 focus:border-gold focus:outline-none; }
+  .badge { @apply inline-block border px-1.5 py-px text-[10px] uppercase tracking-wider; }
+}

@@ -11,8 +11,12 @@ Last updated: 2026-11-24
 ## Pending
 Phases 2–6 (backend, admin, mobile, trainer/advanced, testing/production).
 
+## Completed (continued)
+- Backend business modules: plans, members, subscriptions (sell/renew/freeze/cancel), payments (offline), attendance (manual check-in), dashboard. Admin app: httpOnly-cookie sessions via same-origin proxy, Today, Members with add/sell/renew/pay/freeze/cancel/check-in.
+
 ## Known issues / blockers
-- Backend has never touched a real database: migrations, constraints and auth flows are unverified end to end.
+- Not built yet: plans management UI (plans are created via API or `npm run seed:sample`), enquiries, trainers, reports, settings, QR check-in, Razorpay online payments, refunds, mobile apps.
+- Admin tested manually in one browser at desktop width only; no automated UI tests.
 - No production SMS provider: OTP uses a dev console sender and the API refuses to boot in production until a real SmsSender exists.
 - Real business data not yet provided (Instagram URL, address, phone, WhatsApp, hours, photos, prices, trainers). All such content in the site is **placeholder** and centralised in `apps/website/src/content/site.ts`, flagged `PLACEHOLDER`.
 - No real photography: temporary neutral panels are used and labelled.
