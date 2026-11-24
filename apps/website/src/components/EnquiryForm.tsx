@@ -50,12 +50,12 @@ export default function EnquiryForm({ mode }: Props) {
           <div>
             <label htmlFor="name" className={label}>Full name</label>
             <input id="name" name="name" autoComplete="name" className={field} aria-invalid={!!errors.name} aria-describedby={errors.name ? "name-err" : undefined} />
-            {errors.name && <p id="name-err" className="mt-2 text-sm text-red-400">{errors.name}</p>}
+            {errors.name && <p id="name-err" className="mt-2 text-sm text-red-500">{errors.name}</p>}
           </div>
           <div>
             <label htmlFor="phone" className={label}>Mobile number</label>
             <input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="98XXXXXXXX" className={field} aria-invalid={!!errors.phone} aria-describedby={errors.phone ? "phone-err" : undefined} />
-            {errors.phone && <p id="phone-err" className="mt-2 text-sm text-red-400">{errors.phone}</p>}
+            {errors.phone && <p id="phone-err" className="mt-2 text-sm text-red-500">{errors.phone}</p>}
           </div>
           {mode === "trial" ? (
             <>

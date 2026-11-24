@@ -47,9 +47,9 @@ function Hero() {
     <section ref={ref} className="relative flex min-h-[100svh] items-end overflow-hidden pb-20 pt-32 sm:items-center sm:pb-0">
       <div className="absolute inset-0" aria-hidden>
         <Image src={stock["Club interior"]} alt="" fill priority sizes="100vw" className="object-cover opacity-40" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_30%,rgba(58,47,18,0.55)_0%,rgba(10,10,10,0.85)_65%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_30%,rgb(var(--c-glow)/0.55)_0%,rgb(var(--c-ink)/0.85)_65%)]" />
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-ink/60" />
-        <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "repeating-linear-gradient(90deg,#f4f1ea 0 1px,transparent 1px 120px)" }} />
+        <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "repeating-linear-gradient(90deg,rgb(var(--c-bone)) 0 1px,transparent 1px 120px)" }} />
       </div>
       <motion.div style={{ opacity: fade }} className="container-x relative">
         <Reveal><p className="eyebrow">{site.city} · Premium Fitness Club</p></Reveal>
@@ -257,7 +257,7 @@ function PhotoBand() {
       <div className="absolute inset-0 bg-gradient-to-b from-ink via-ink/40 to-ink" aria-hidden />
       <div className="container-x relative text-center">
         <Reveal>
-          <p className="font-display text-[clamp(3.5rem,14vw,12rem)] font-semibold leading-none tracking-tight text-transparent [-webkit-text-stroke:1px_rgb(201_162_75/0.8)]">DISCIPLINE</p>
+          <p className="font-display text-[clamp(3.5rem,14vw,12rem)] font-semibold leading-none tracking-tight text-transparent [-webkit-text-stroke:1px_rgb(var(--c-gold)/0.9)]">DISCIPLINE</p>
           <p className="mx-auto mt-6 max-w-md text-bone/70">Motivation gets you in the door. Standards keep you coming back.</p>
         </Reveal>
       </div>

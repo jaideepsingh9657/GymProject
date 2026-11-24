@@ -2,7 +2,7 @@
 export default function PhoneMockup() {
   const cells = Array.from({ length: 81 }, (_, i) => ((i * 7 + (i >> 2) * 3) % 5 < 2));
   return (
-    <div className="relative mx-auto w-[260px] sm:w-[290px]" role="img" aria-label="Sample member app screen showing a membership QR card">
+    <div data-theme="dark" className="relative mx-auto w-[260px] text-bone sm:w-[290px]" role="img" aria-label="Sample member app screen showing a membership QR card">
       <div className="absolute -inset-10 bg-[radial-gradient(circle,rgba(201,162,75,0.25)_0%,transparent_65%)]" aria-hidden />
       <div className="relative rounded-[2.6rem] border border-bone/20 bg-ink p-3 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)]">
         <div className="rounded-[2rem] bg-charcoal px-5 pb-6 pt-8">

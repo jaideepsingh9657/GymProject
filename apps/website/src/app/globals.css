@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+:root, [data-theme="dark"] {
+  color-scheme: dark;
   --c-ink: 10 10 10;
   --c-charcoal: 20 20 20;
   --c-graphite: 31 31 31;
@@ -11,9 +12,24 @@
   --c-mute: 163 159 150;
   --c-gold: 201 162 75;
   --c-gold-soft: 226 201 133;
+  --c-glow: 58 47 18;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --c-ink: 250 248 243;
+  --c-charcoal: 241 237 228;
+  --c-graphite: 230 225 213;
+  --c-line: 214 207 192;
+  --c-bone: 22 20 17;
+  --c-mute: 96 91 82;
+  --c-gold: 138 104 24;
+  --c-gold-soft: 171 134 45;
+  --c-glow: 236 222 188;
 }
 
 html { scroll-behavior: smooth; }
+body, header, footer, section, .card { transition: background-color .3s ease, border-color .3s ease, color .3s ease; }
 body {
   background: rgb(var(--c-ink));
   color: rgb(var(--c-bone));

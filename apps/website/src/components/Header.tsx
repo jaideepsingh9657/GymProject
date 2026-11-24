@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { nav, site } from "@/content/site";
+import ThemeToggle from "./ThemeToggle";
 
 export default function Header() {
   const [solid, setSolid] = useState(false);
@@ -24,7 +25,10 @@ export default function Header() {
             <Link key={n.href} href={n.href} className="text-xs uppercase tracking-[0.18em] text-bone/80 transition-colors hover:text-gold">{n.label}</Link>
           ))}
         </nav>
-        <Link href="/book-trial" className="btn btn-gold hidden lg:inline-flex">Free Trial</Link>
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <Link href="/book-trial" className="btn btn-gold hidden lg:inline-flex">Free Trial</Link>
+        </div>
         <button
           className="lg:hidden p-2" aria-label="Menu" aria-expanded={open} aria-controls="mobile-nav"
           onClick={() => setOpen((v) => !v)}
