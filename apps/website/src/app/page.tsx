@@ -41,11 +41,7 @@ function Hero() {
     <section ref={ref} className="relative flex min-h-[100svh] items-end overflow-hidden pb-20 pt-32 sm:items-center sm:pb-0">
       <motion.div style={{ y: bgY }} className="absolute inset-0 -top-10" aria-hidden>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_30%,#3a2f12_0%,#0a0a0a_62%)]" />
-        <motion.div
-          className="absolute -right-40 top-10 h-[34rem] w-[34rem] rounded-full bg-gold/20 blur-[120px]"
-          animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.8, 0.5] }}
-          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-        />
+        <div className="absolute -right-40 top-10 h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle,rgba(201,162,75,0.28)_0%,transparent_70%)]" />
         <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "repeating-linear-gradient(90deg,#f4f1ea 0 1px,transparent 1px 120px)" }} />
       </motion.div>
       <motion.div style={{ opacity: fade }} className="container-x relative">
