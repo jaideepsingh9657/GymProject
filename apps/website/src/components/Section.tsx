@@ -1,4 +1,6 @@
+import Image from "next/image";
 import Reveal from "./Reveal";
+import { stock } from "@/content/images";
 import SplitText from "./motion/SplitText";
 
 export function SectionHead({ eyebrow, title, intro }: { eyebrow: string; title: string; intro?: string }) {
@@ -14,8 +16,8 @@ export function SectionHead({ eyebrow, title, intro }: { eyebrow: string; title:
 const hash = (s: string) => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
 
 /**
- * Dummy image: generated abstract art (no external assets), clearly labelled.
- * Replace with real photography via next/image once available.
+ * Stock photo (see content/images.ts) when one is mapped for this label/seed,
+ * otherwise generated abstract art. Replace with real photography when available.
  */
 export function PhotoPlaceholder({ label, className = "", seed }: { label: string; className?: string; seed?: string }) {
   const h = hash(seed ?? label);
@@ -24,6 +26,16 @@ export function PhotoPlaceholder({ label, className = "", seed }: { label: strin
   const cy = 15 + ((h >> 3) % 50);
   const r = 28 + ((h >> 5) % 30);
   const id = `g${h}`;
+  const photo = stock[seed ?? label];
+  if (photo) {
+    return (
+      <div className={`group relative overflow-hidden border border-line bg-graphite ${className}`}>
+        <Image src={photo} alt={label} fill sizes="(min-width:1024px) 50vw, 100vw" className="object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-110" />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink/60 via-transparent to-transparent" />
+        <span className="absolute bottom-3 left-4 text-[10px] uppercase tracking-wider2 text-bone/60">Stock photo · {label}</span>
+      </div>
+    );
+  }
   return (
     <div className={`group relative overflow-hidden border border-line bg-graphite ${className}`} role="img" aria-label={`Placeholder image: ${label}`}>
       <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full transition-transform duration-[1200ms] ease-out group-hover:scale-110" aria-hidden>
