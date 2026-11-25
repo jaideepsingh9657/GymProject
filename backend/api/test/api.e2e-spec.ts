@@ -140,6 +140,26 @@ describe("membership lifecycle", () => {
     expect(d.revenueByDay).toHaveLength(14);
   });
 
+  it("payments ledger, summary and receipt detail", async () => {
+    await http().get("/v1/payments").set(auth(trainer)).expect(403);
+    const all = (await http().get("/v1/payments").set(auth(admin)).expect(200)).body;
+    expect(all.total).toBe(2); // the first sale (paid in full) and the queued renewal; the rejected overlap created nothing
+    expect(all.summary.collectedMonthPaise).toBe(300000);
+    expect(all.summary.outstandingPaise).toBeGreaterThanOrEqual(300000);
+    const due = (await http().get("/v1/payments?status=DUE").set(auth(admin)).expect(200)).body;
+    expect(due.items.every((p: any) => p.amountPaidPaise < p.amountDuePaise)).toBe(true);
+    const paid = (await http().get("/v1/payments?status=PAID").set(auth(admin)).expect(200)).body;
+    expect(paid.total).toBe(1);
+    const byName = (await http().get("/v1/payments?search=test%20member").set(auth(admin)).expect(200)).body;
+    expect(byName.total).toBe(2);
+    await http().get("/v1/payments?status=BOGUS").set(auth(admin)).expect(400);
+    const detail = (await http().get(`/v1/payments/${paid.items[0].id}`).set(auth(admin)).expect(200)).body;
+    expect(detail.receiptNo).toMatch(/^LFG-/);
+    expect(detail.transactions).toHaveLength(2);
+    expect(detail.member.memberCode).toBe("GYM-0001");
+    await http().get("/v1/payments/not-a-uuid").set(auth(admin)).expect(400);
+  });
+
   it("cancel works and audit log is complete and immutable", async () => {
     await http().post(`/v1/subscriptions/${subId}/cancel`).set(auth(admin)).send({ reason: "test" }).expect(200);
     const actions = (await db.auditLog.findMany({ select: { action: true } })).map((a) => a.action);

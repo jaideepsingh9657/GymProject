@@ -1,15 +1,67 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { AuditService } from "../audit/audit.service";
 import { branchOf } from "../common/branch";
 import { AuthUser } from "../common/decorators";
 import { localToday } from "../common/dates";
 import { PrismaService } from "../prisma/prisma.service";
-import { RecordPaymentDto } from "./dto/payment.dto";
+import { ListPaymentsDto, RecordPaymentDto } from "./dto/payment.dto";
 import { nextReceiptNo, paymentStatus } from "./receipt";
 
 @Injectable()
 export class PaymentsService {
   constructor(private readonly db: PrismaService, private readonly audit: AuditService) {}
+
+  /** Paged ledger with a summary strip. Month boundaries use the branch-local (IST) calendar. */
+  async list(user: AuthUser, q: ListPaymentsDto) {
+    const branchId = branchOf(user);
+    const where: Prisma.PaymentWhereInput = { member: { branchId, deletedAt: null } };
+    if (q.status === "DUE") where.status = { in: ["PENDING", "PARTIAL"] };
+    if (q.status === "PAID") where.status = "PAID";
+    if (q.search?.trim()) {
+      const s = q.search.trim();
+      where.OR = [{ receiptNo: { contains: s, mode: "insensitive" } }, { member: { name: { contains: s, mode: "insensitive" } } }, { member: { memberCode: { contains: s, mode: "insensitive" } } }];
+    }
+    const page = q.page ?? 1, limit = q.limit ?? 20;
+    const today = localToday();
+    const monthStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
+    // createdAt is a real instant; shift the IST month start back to UTC (+05:30) for the comparison.
+    const monthStartInstant = new Date(monthStart.getTime() - 5.5 * 3_600_000);
+
+    const [total, items, open, collected] = await Promise.all([
+      this.db.payment.count({ where }),
+      this.db.payment.findMany({
+        where, orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit,
+        select: { id: true, amountDuePaise: true, amountPaidPaise: true, status: true, receiptNo: true, createdAt: true, member: { select: { id: true, name: true, memberCode: true } }, subscription: { select: { plan: { select: { name: true } } } } },
+      }),
+      this.db.payment.findMany({ where: { status: { in: ["PENDING", "PARTIAL"] }, member: { branchId } }, select: { amountDuePaise: true, amountPaidPaise: true, memberId: true } }),
+      this.db.paymentTransaction.findMany({ where: { status: "SUCCESS", createdAt: { gte: monthStartInstant }, payment: { member: { branchId } } }, select: { type: true, amountPaise: true } }),
+    ]);
+    return {
+      total, page, limit,
+      summary: {
+        collectedMonthPaise: collected.reduce((a, t) => a + (t.type === "REFUND" ? -t.amountPaise : t.amountPaise), 0),
+        outstandingPaise: open.reduce((a, p) => a + (p.amountDuePaise - p.amountPaidPaise), 0),
+        membersWithDues: new Set(open.map((p) => p.memberId)).size,
+      },
+      items: items.map((p) => ({ id: p.id, amountDuePaise: p.amountDuePaise, amountPaidPaise: p.amountPaidPaise, status: p.status, receiptNo: p.receiptNo, createdAt: p.createdAt, member: p.member, planName: p.subscription?.plan.name ?? null })),
+    };
+  }
+
+  /** Everything needed to print a receipt. */
+  async get(user: AuthUser, id: string) {
+    const p = await this.db.payment.findFirst({
+      where: { id, member: { branchId: branchOf(user) } },
+      select: {
+        id: true, amountDuePaise: true, amountPaidPaise: true, status: true, receiptNo: true, createdAt: true,
+        member: { select: { id: true, name: true, memberCode: true } },
+        subscription: { select: { startDate: true, endDate: true, plan: { select: { name: true, durationDays: true } } } },
+        transactions: { where: { status: "SUCCESS" }, orderBy: { createdAt: "asc" }, select: { method: true, type: true, amountPaise: true, createdAt: true } },
+      },
+    });
+    if (!p) throw new NotFoundException("Payment not found");
+    return p;
+  }
 
   /** Outstanding balances, oldest first. */
   outstanding(user: AuthUser) {

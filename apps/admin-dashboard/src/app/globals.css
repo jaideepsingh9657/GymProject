@@ -26,3 +26,11 @@ body { background: rgb(var(--c-ink)); color: rgb(var(--c-bone)); font-family: va
   .input { @apply w-full border border-line bg-ink px-3 py-2 text-sm text-bone placeholder:text-mute/60 focus:border-gold focus:outline-none; }
   .badge { @apply inline-block border px-1.5 py-px text-[10px] uppercase tracking-wider; }
 }
+
+@media print {
+  body * { visibility: hidden; }
+  .receipt, .receipt * { visibility: visible; }
+  .receipt { position: absolute; inset: 0; margin: 0; max-width: none; background: #fff !important; color: #000 !important; border: 0 !important; padding: 24px !important; }
+  .receipt .no-print { display: none !important; }
+  .receipt * { color: #000 !important; border-color: #999 !important; }
+}

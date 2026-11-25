@@ -21,3 +21,18 @@ export interface Dashboard {
   enquiries: Record<string, number>;
   revenueByDay: { date: string; paise: number }[];
 }
+
+export interface PaymentListRow {
+  id: string; amountDuePaise: number; amountPaidPaise: number; status: "PENDING" | "PARTIAL" | "PAID" | "REFUNDED" | "FAILED";
+  receiptNo: string | null; createdAt: string; planName: string | null; member: { id: string; name: string; memberCode: string };
+}
+export interface PaymentList {
+  total: number; page: number; limit: number; items: PaymentListRow[];
+  summary: { collectedMonthPaise: number; outstandingPaise: number; membersWithDues: number };
+}
+export interface PaymentDetail {
+  id: string; amountDuePaise: number; amountPaidPaise: number; status: string; receiptNo: string | null; createdAt: string;
+  member: { id: string; name: string; memberCode: string };
+  subscription: { startDate: string; endDate: string; plan: { name: string; durationDays: number } } | null;
+  transactions: { method: string; type: string; amountPaise: number; createdAt: string }[];
+}
