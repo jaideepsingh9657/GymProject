@@ -1,30 +1,33 @@
 # PROJECT STATUS
 
-Last updated: 2026-11-24
+Last updated: 2026-11-25
 
 ## Completed
-- Monorepo scaffold; draft PRD, ARCHITECTURE, DATABASE, API docs (approved by owner to proceed).
+- Phase 0: PRD, architecture, database, API docs, admin design (`docs/`).
+- Phase 1 website (`apps/website`): all pages, motion system, dark/light theme, stock photos. Content is placeholder.
+- Phase 2 backend (`backend/api`): NestJS + Prisma + PostgreSQL. Auth (staff password, phone OTP, rotating refresh tokens with reuse detection), RBAC, audit log, rate limiting, validation, request logging. Verified by 20 e2e tests against a real database plus 20 unit tests.
+- Backend business modules: plans, members, subscriptions (sell/renew/freeze/cancel), payments (offline: ledger, outstanding, receipts), attendance (manual check-in/out, day list, 30-day report), dashboard.
+- Phase 3 admin (`apps/admin-dashboard`): httpOnly-cookie sessions via same-origin proxy. Screens: Today, Members, Memberships (plans), Payments (with printable receipts), Attendance.
 
 ## In progress
-- Phase 1: website (homepage first) in `apps/website`.
+- Nothing active. Next candidates: Enquiries (needs website forms wired to the API), Trainers, Reports, Settings.
 
 ## Pending
-Phases 2–6 (backend, admin, mobile, trainer/advanced, testing/production).
-
-## Completed (continued)
-- Backend business modules: plans, members, subscriptions (sell/renew/freeze/cancel), payments (offline), attendance (manual check-in), dashboard. Admin app: httpOnly-cookie sessions via same-origin proxy, Today, Members with add/sell/renew/pay/freeze/cancel/check-in.
+- Admin: Enquiries, Trainers, Reports, Settings screens.
+- Backend: QR check-in, Razorpay online payments + webhook, refunds, enquiry/trial endpoints, workouts, diets, progress, notifications, file uploads.
+- Phase 4 mobile apps (iOS SwiftUI, Android Flutter), Phase 5 trainer features, Phase 6 production hardening and deployment.
 
 ## Known issues / blockers
-- Not built yet: enquiries, trainers, reports, settings, QR check-in, Razorpay online payments, refunds, mobile apps.
-- Admin tested manually in one browser at desktop width only; no automated UI tests.
-- No production SMS provider: OTP uses a dev console sender and the API refuses to boot in production until a real SmsSender exists.
-- Real business data not yet provided (Instagram URL, address, phone, WhatsApp, hours, photos, prices, trainers). All such content in the site is **placeholder** and centralised in `apps/website/src/content/site.ts`, flagged `PLACEHOLDER`.
-- No real photography: temporary neutral panels are used and labelled.
+- Admin tested manually in a browser only; no automated UI tests. Receipt print output not verified.
+- No production SMS provider: OTP uses a dev console sender and the API refuses to boot in production until a real `SmsSender` exists.
+- Website forms open WhatsApp; they do not save to the backend yet.
+- Real business data not yet provided (Instagram, address, phone, WhatsApp, hours, photos, prices, trainers). All site content is placeholder, centralised in `apps/website/src/content/site.ts`.
+- Dev database is `embedded-postgres` (dev/test only). Production needs a managed PostgreSQL.
 
 ## Technical decisions
-Modular monolith NestJS; PostgreSQL + Prisma; JWT + rotating refresh; server-side Razorpay verification; paise for money; OpenAPI contract. Website: Next.js App Router + TypeScript + Tailwind, design tokens in CSS variables.
+Modular monolith NestJS; PostgreSQL + Prisma; JWT access + rotating refresh; money in paise; branch scoping on all tenant data; idempotency keys on sales and payments; DB constraints for overlapping memberships and append-only audit log; admin tokens in httpOnly cookies behind a proxy (never in page JavaScript).
 
 ## Next steps
-1. Owner supplies real business data (see docs/PRD.md §9).
-2. Finish remaining website pages.
-3. Begin Phase 2 backend foundation.
+1. Owner supplies real business data (`docs/PRD.md` section 9).
+2. Choose next admin screen.
+3. Decide SMS provider (DLT registration takes weeks) and Razorpay account.
