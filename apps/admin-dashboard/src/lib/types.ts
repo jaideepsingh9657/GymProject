@@ -45,3 +45,15 @@ export interface AttendanceReport {
   days: number; from: string; to: string; totalVisits: number; uniqueMembers: number; avgPerDay: number; avgVisitMinutes: number | null;
   daily: { date: string; count: number }[]; byHour: { hour: number; count: number }[];
 }
+
+export type EnquiryStatus = "NEW" | "CONTACTED" | "TRIAL_BOOKED" | "CONVERTED" | "LOST";
+export interface EnquiryRow {
+  id: string; name: string; phone: string; email: string | null; message: string | null; goal: string | null; preferredTime: string | null;
+  notes: string | null; isTrialRequest: boolean; source: "WEBSITE" | "WHATSAPP" | "WALKIN" | "OTHER"; status: EnquiryStatus;
+  followUpAt: string | null; convertedMemberId: string | null; createdAt: string;
+  trials: { id: string; scheduledAt: string; status: "SCHEDULED" | "ATTENDED" | "NO_SHOW" | "CANCELLED"; goal: string | null }[];
+}
+export interface EnquiryList {
+  total: number; page: number; limit: number; items: EnquiryRow[]; counts: Partial<Record<EnquiryStatus, number>>;
+  summary: { followUpsDue: number; trialsThisWeek: number; leads30d: number; converted30d: number; conversionRate: number };
+}

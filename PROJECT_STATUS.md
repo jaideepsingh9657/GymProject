@@ -5,22 +5,22 @@ Last updated: 2026-11-25
 ## Completed
 - Phase 0: PRD, architecture, database, API docs, admin design (`docs/`).
 - Phase 1 website (`apps/website`): all pages, motion system, dark/light theme, stock photos. Content is placeholder.
-- Phase 2 backend (`backend/api`): NestJS + Prisma + PostgreSQL. Auth (staff password, phone OTP, rotating refresh tokens with reuse detection), RBAC, audit log, rate limiting, validation, request logging. Verified by 20 e2e tests against a real database plus 20 unit tests.
+- Phase 2 backend (`backend/api`): NestJS + Prisma + PostgreSQL. Auth (staff password, phone OTP, rotating refresh tokens with reuse detection), RBAC, audit log, rate limiting, validation, request logging. Verified by 26 tests against a real database plus 20 unit tests.
 - Backend business modules: plans, members, subscriptions (sell/renew/freeze/cancel), payments (offline: ledger, outstanding, receipts), attendance (manual check-in/out, day list, 30-day report), dashboard.
-- Phase 3 admin (`apps/admin-dashboard`): httpOnly-cookie sessions via same-origin proxy. Screens: Today, Members, Memberships (plans), Payments (with printable receipts), Attendance.
+- Phase 3 admin (`apps/admin-dashboard`): httpOnly-cookie sessions via same-origin proxy. Screens: Today, Members, Memberships (plans), Payments (with printable receipts), Attendance, Enquiries (lead pipeline, trials, convert to member).
 
 ## In progress
-- Nothing active. Next candidates: Enquiries (needs website forms wired to the API), Trainers, Reports, Settings.
+- Nothing active. Next candidates: Reports, Trainers, Settings.
 
 ## Pending
-- Admin: Enquiries, Trainers, Reports, Settings screens.
-- Backend: QR check-in, Razorpay online payments + webhook, refunds, enquiry/trial endpoints, workouts, diets, progress, notifications, file uploads.
+- Admin: Trainers, Reports, Settings screens.
+- Backend: QR check-in, Razorpay online payments + webhook, refunds, workouts, diets, progress, notifications, file uploads.
 - Phase 4 mobile apps (iOS SwiftUI, Android Flutter), Phase 5 trainer features, Phase 6 production hardening and deployment.
 
 ## Known issues / blockers
 - Admin tested manually in a browser only; no automated UI tests. Receipt print output not verified.
 - No production SMS provider: OTP uses a dev console sender and the API refuses to boot in production until a real `SmsSender` exists.
-- Website forms open WhatsApp; they do not save to the backend yet.
+- Website enquiry/trial forms save to the API (`POST /v1/public/enquiries`, rate-limited, honeypot, de-duplicated). Set `NEXT_PUBLIC_API_URL` and add the site origin to the API `CORS_ORIGINS`. WhatsApp is only a fallback. No notification to staff on a new lead yet.
 - Real business data not yet provided (Instagram, address, phone, WhatsApp, hours, photos, prices, trainers). All site content is placeholder, centralised in `apps/website/src/content/site.ts`.
 - Dev database is `embedded-postgres` (dev/test only). Production needs a managed PostgreSQL.
 

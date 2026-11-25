@@ -186,3 +186,63 @@ describe("membership lifecycle", () => {
     await expect(db.auditLog.deleteMany({})).rejects.toThrow(/append-only/);
   });
 });
+
+describe("enquiries", () => {
+  const pub = { name: "Web Lead", phone: "90000 00001", kind: "TRIAL", goal: "Lose fat", preferredTime: "Evening", message: "Hi" };
+  let id: string;
+
+  it("public form saves a lead without logging in, and de-duplicates", async () => {
+    await http().post("/v1/public/enquiries").send(pub).expect(202);
+    await http().post("/v1/public/enquiries").send({ ...pub, name: "Web Lead Again" }).expect(202); // same number inside 24h
+    expect(await db.enquiry.count({ where: { phone: "+919000000001" } })).toBe(1);
+    const row = await db.enquiry.findFirstOrThrow({ where: { phone: "+919000000001" } });
+    expect(row).toMatchObject({ source: "WEBSITE", isTrialRequest: true, goal: "Lose fat", status: "NEW" });
+  });
+
+  it("public form validates and ignores bots", async () => {
+    await http().post("/v1/public/enquiries").send({ name: "X", phone: "123" }).expect(400);
+    await http().post("/v1/public/enquiries").send({ ...pub, phone: "9000000002", extra: 1 }).expect(400); // unknown field
+    await http().post("/v1/public/enquiries").send({ ...pub, phone: "9000000003", company: "spam inc" }).expect(202);
+    expect(await db.enquiry.count({ where: { phone: "+919000000003" } })).toBe(0); // honeypot: accepted but not stored
+  });
+
+  it("staff list it with counts; trainers can't", async () => {
+    await http().get("/v1/enquiries").set(auth(trainer)).expect(403);
+    const r = (await http().get("/v1/enquiries").set(auth(admin)).expect(200)).body;
+    expect(r.total).toBe(1); expect(r.counts.NEW).toBe(1); expect(r.summary.followUpsDue).toBe(1);
+    id = r.items[0].id;
+    const none = (await http().get("/v1/enquiries?search=nobody").set(auth(admin)).expect(200)).body;
+    expect(none.total).toBe(0);
+    await http().get("/v1/enquiries?status=BOGUS").set(auth(admin)).expect(400);
+  });
+
+  it("updates status, follow-up and notes; cannot mark converted directly", async () => {
+    const r = (await http().patch(`/v1/enquiries/${id}`).set(auth(admin)).send({ status: "CONTACTED", notes: "Called, wants evening", followUpAt: new Date(Date.now() + 86_400_000 * 3).toISOString() }).expect(200)).body;
+    expect(r).toMatchObject({ status: "CONTACTED", notes: "Called, wants evening" });
+    await http().patch(`/v1/enquiries/${id}`).set(auth(admin)).send({ status: "CONVERTED" }).expect(400);
+  });
+
+  it("schedules a trial (not in the past) and updates it", async () => {
+    await http().post(`/v1/enquiries/${id}/trial`).set(auth(admin)).send({ scheduledAt: "2020-01-01T10:00:00Z" }).expect(400);
+    const r = (await http().post(`/v1/enquiries/${id}/trial`).set(auth(admin)).send({ scheduledAt: new Date(Date.now() + 86_400_000).toISOString() }).expect(201)).body;
+    expect(r.status).toBe("TRIAL_BOOKED");
+    expect(r.trials).toHaveLength(1);
+    const t = (await http().patch(`/v1/enquiries/${id}/trials/${r.trials[0].id}`).set(auth(admin)).send({ status: "ATTENDED" }).expect(200)).body;
+    expect(t.trials[0].status).toBe("ATTENDED");
+  });
+
+  it("converts to a member once; an existing phone is a clean conflict", async () => {
+    const r = (await http().post(`/v1/enquiries/${id}/convert`).set(auth(admin)).send({}).expect(200)).body;
+    expect(r.enquiry.status).toBe("CONVERTED");
+    const m = await db.member.findUniqueOrThrow({ where: { id: r.memberId } });
+    expect(m).toMatchObject({ name: "Web Lead", memberCode: "GYM-0002" });
+    await http().post(`/v1/enquiries/${id}/convert`).set(auth(admin)).send({}).expect(409);
+    await http().patch(`/v1/enquiries/${id}`).set(auth(admin)).send({ status: "LOST" }).expect(409);
+
+    const dup = (await http().post("/v1/enquiries").set(auth(admin)).send({ name: "Already Member", phone: "9876543210", source: "WALKIN" }).expect(201)).body;
+    await http().post(`/v1/enquiries/${dup.id}/convert`).set(auth(admin)).send({}).expect(409);
+    const existing = await db.member.findFirstOrThrow({ where: { memberCode: "GYM-0001" } });
+    const linked = (await http().post(`/v1/enquiries/${dup.id}/convert`).set(auth(admin)).send({ memberId: existing.id }).expect(200)).body;
+    expect(linked.memberId).toBe(existing.id);
+  });
+});

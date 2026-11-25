@@ -5,15 +5,15 @@ import { site, waLink } from "@/content/site";
 
 type Props = { mode: "trial" | "contact" };
 
-/**
- * No backend yet: on submit this validates and opens WhatsApp with the details
- * prefilled. Phase 3 replaces this with POST /v1/public/enquiries.
- */
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+
+/** Saves the lead to the gym's backend; WhatsApp is offered as a fallback, not the primary path. */
 export default function EnquiryForm({ mode }: Props) {
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [done, setDone] = useState(false);
+  const [state, setState] = useState<"idle" | "sending" | "done" | "failed">("idle");
+  const [summary, setSummary] = useState("");
 
-  function submit(e: React.FormEvent<HTMLFormElement>) {
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const name = String(f.get("name") ?? "").trim();
@@ -23,15 +23,19 @@ export default function EnquiryForm({ mode }: Props) {
     if (!/^(\+91)?[6-9]\d{9}$/.test(phone)) err.phone = "Enter a valid 10-digit Indian mobile number.";
     setErrors(err);
     if (Object.keys(err).length) return;
-    const lines = [
-      mode === "trial" ? "Free trial request" : "Enquiry",
-      `Name: ${name}`, `Phone: ${phone}`,
-      f.get("goal") ? `Goal: ${f.get("goal")}` : "",
-      f.get("time") ? `Preferred time: ${f.get("time")}` : "",
-      f.get("message") ? `Message: ${f.get("message")}` : "",
-    ].filter(Boolean);
-    window.open(waLink(lines.join("\n")), "_blank", "noopener");
-    setDone(true);
+
+    const goal = String(f.get("goal") ?? ""), time = String(f.get("time") ?? ""), message = String(f.get("message") ?? "");
+    setSummary([mode === "trial" ? "Free trial request" : "Enquiry", `Name: ${name}`, `Phone: ${phone}`, goal && `Goal: ${goal}`, time && `Preferred time: ${time}`, message && `Message: ${message}`].filter(Boolean).join("\n"));
+    setState("sending");
+    try {
+      const res = await fetch(`${API}/v1/public/enquiries`, {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name, phone, kind: mode === "trial" ? "TRIAL" : "ENQUIRY", ...(goal && { goal }), ...(time && { preferredTime: time }), ...(message && { message }), company: String(f.get("company") ?? "") }),
+      });
+      setState(res.ok ? "done" : "failed");
+    } catch {
+      setState("failed");
+    }
   }
 
   const field = "w-full border border-line bg-charcoal px-4 py-3.5 text-bone placeholder:text-mute/60 focus:border-gold focus:outline-none";
@@ -39,14 +43,18 @@ export default function EnquiryForm({ mode }: Props) {
 
   return (
     <AnimatePresence mode="wait">
-      {done ? (
+      {state === "done" ? (
         <motion.div key="ok" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="card p-10 text-center" role="status">
           <p className="font-display text-4xl text-gold">Thank you.</p>
-          <p className="mt-4 text-mute">WhatsApp opened with your details. Send the message to reach {site.name}.</p>
-          <button className="btn btn-ghost mt-8" onClick={() => setDone(false)}>Send another</button>
+          <p className="mt-4 text-mute">{mode === "trial" ? "Your trial request is in." : "Your enquiry is in."} Our team will call you shortly.</p>
+          <a href={waLink(summary)} className="btn btn-ghost mt-8">Or message us on WhatsApp</a>
         </motion.div>
       ) : (
         <motion.form key="form" onSubmit={submit} noValidate exit={{ opacity: 0 }} className="grid gap-6">
+          {/* Honeypot: hidden from people and assistive tech; bots fill it and are ignored by the server. */}
+          <div aria-hidden className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+            <label>Company<input name="company" tabIndex={-1} autoComplete="off" /></label>
+          </div>
           <div>
             <label htmlFor="name" className={label}>Full name</label>
             <input id="name" name="name" autoComplete="name" className={field} aria-invalid={!!errors.name} aria-describedby={errors.name ? "name-err" : undefined} />
@@ -75,10 +83,15 @@ export default function EnquiryForm({ mode }: Props) {
           ) : (
             <div>
               <label htmlFor="message" className={label}>Message</label>
-              <textarea id="message" name="message" rows={4} className={field} />
+              <textarea id="message" name="message" rows={4} maxLength={1000} className={field} />
             </div>
           )}
-          <button type="submit" className="btn btn-gold">{mode === "trial" ? "Book via WhatsApp" : "Send via WhatsApp"}</button>
+          {state === "failed" && (
+            <p role="alert" className="border border-red-500/60 px-4 py-3 text-sm text-red-500">
+              We couldn't send that. Please try again, or <a className="underline" href={waLink(summary)}>message us on WhatsApp</a> or call {site.phone}.
+            </p>
+          )}
+          <button type="submit" disabled={state === "sending"} className="btn btn-gold disabled:opacity-60">{state === "sending" ? "Sending…" : mode === "trial" ? "Book my free trial" : "Send enquiry"}</button>
           <p className="text-xs text-mute">Your details are only used to reply to this request.</p>
         </motion.form>
       )}

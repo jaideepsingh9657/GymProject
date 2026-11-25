@@ -436,6 +436,10 @@ model Enquiry {
   phone             String
   email             String?
   message           String?
+  goal              String?
+  preferredTime     String?
+  notes             String?
+  isTrialRequest    Boolean       @default(false)
   source            EnquirySource @default(WEBSITE)
   status            EnquiryStatus @default(NEW)
   followUpAt        DateTime?
