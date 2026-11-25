@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { Empty } from "@/components/ui";
 
-const SECTIONS = ["trainers", "reports", "settings"];
+const SECTIONS = ["trainers", "settings"];
 
 export default async function Soon({ params }: { params: Promise<{ section: string }> }) {
   const { section } = await params;
   if (!SECTIONS.includes(section)) notFound();
-  return <div className="panel"><Empty title={`${section[0].toUpperCase()}${section.slice(1)} is coming soon`} body="This screen is designed but not built yet. Today, Members, Memberships, Payments, Attendance and Enquiries are live." /></div>;
+  return <div className="panel"><Empty title={`${section[0].toUpperCase()}${section.slice(1)} is coming soon`} body="This screen is designed but not built yet. Today, Members, Memberships, Payments, Attendance, Enquiries and Reports are live." /></div>;
 }

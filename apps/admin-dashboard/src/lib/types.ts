@@ -57,3 +57,15 @@ export interface EnquiryList {
   total: number; page: number; limit: number; items: EnquiryRow[]; counts: Partial<Record<EnquiryStatus, number>>;
   summary: { followUpsDue: number; trialsThisWeek: number; leads30d: number; converted30d: number; conversionRate: number };
 }
+
+export interface ReportSummary {
+  from: string; to: string; days: number; revenuePaise: number;
+  sales: { total: number; new: number; renewals: number; cancelled: number };
+  renewal: { expiring: number; renewed: number; ratePercent: number | null };
+  newMembers: number;
+  outstanding: { totalPaise: number; members: number; top: { paymentId: string; member: { id: string; name: string; memberCode: string }; owedPaise: number; since: string }[] };
+  revenueByDay: { date: string; paise: number }[];
+  revenueByMethod: { method: string; paise: number }[];
+  salesByPlan: { plan: string; count: number; revenuePaise: number }[];
+  memberGrowth: { month: string; joins: number }[];
+}

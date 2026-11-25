@@ -13,6 +13,8 @@ import { PrismaModule } from "./prisma/prisma.service";
 import { EnquiriesController } from "./enquiries/enquiries.controller";
 import { EnquiriesService } from "./enquiries/enquiries.service";
 import { PublicController, PublicService } from "./public/public.controller";
+import { ReportsController } from "./reports/reports.controller";
+import { ReportsService } from "./reports/reports.service";
 import { RbacModule } from "./rbac/rbac.module";
 import { AttendanceController } from "./attendance/attendance.controller";
 import { AttendanceService } from "./attendance/attendance.service";
@@ -44,9 +46,9 @@ import { SubscriptionsService } from "./subscriptions/subscriptions.service";
     }),
     PrismaModule, AuditModule, RbacModule, AuthModule,
   ],
-  controllers: [HealthController, PlansController, MembersController, SubscriptionsController, PaymentsController, AttendanceController, DashboardController, EnquiriesController, PublicController],
+  controllers: [HealthController, PlansController, MembersController, SubscriptionsController, PaymentsController, AttendanceController, DashboardController, EnquiriesController, PublicController, ReportsController],
   providers: [
-    PlansService, MembersService, SubscriptionsService, PaymentsService, AttendanceService, DashboardService, EnquiriesService, PublicService,
+    PlansService, MembersService, SubscriptionsService, PaymentsService, AttendanceService, DashboardService, EnquiriesService, PublicService, ReportsService,
     // Order matters: rate-limit, then authenticate, then authorize.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },

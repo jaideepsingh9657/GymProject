@@ -246,3 +246,51 @@ describe("enquiries", () => {
     expect(linked.memberId).toBe(existing.id);
   });
 });
+
+describe("reports", () => {
+  it("are owner-only", async () => {
+    await http().get("/v1/reports/summary").set(auth(admin)).expect(403);
+    await http().get("/v1/reports/summary").set(auth(trainer)).expect(403);
+    await http().get("/v1/reports/export?type=sales").set(auth(admin)).expect(403);
+  });
+
+  it("summarises revenue, sales, members and dues from the lifecycle above", async () => {
+    const r = (await http().get("/v1/reports/summary").set(auth(owner)).expect(200)).body;
+    expect(r.days).toBe(30);
+    expect(r.revenuePaise).toBe(300000);
+    expect(r.revenueByMethod).toEqual([{ method: "UPI", paise: 200000 }, { method: "CASH", paise: 100000 }]);
+    expect(r.revenueByDay).toHaveLength(30);
+    expect(r.revenueByDay.reduce((a: number, d: any) => a + d.paise, 0)).toBe(300000);
+    expect(r.sales).toEqual({ total: 2, new: 1, renewals: 1, cancelled: 1 });
+    expect(r.salesByPlan).toEqual([{ plan: "Monthly", count: 2, revenuePaise: 600000 }]);
+    expect(r.newMembers).toBe(2);
+    expect(r.outstanding).toMatchObject({ totalPaise: 300000, members: 1 });
+    expect(r.outstanding.top[0].member.memberCode).toBe("GYM-0001");
+    expect(r.renewal).toEqual({ expiring: 0, renewed: 0, ratePercent: null });
+    expect(r.memberGrowth).toHaveLength(12);
+    expect(r.memberGrowth[11].joins).toBe(2);
+  });
+
+  it("honours a custom range and rejects bad ones", async () => {
+    const past = (await http().get("/v1/reports/summary?from=2020-01-01&to=2020-01-31").set(auth(owner)).expect(200)).body;
+    expect(past).toMatchObject({ days: 31, revenuePaise: 0, newMembers: 0 });
+    expect(past.sales.total).toBe(0);
+    await http().get("/v1/reports/summary?from=2026-02-01&to=2026-01-01").set(auth(owner)).expect(400);
+    await http().get("/v1/reports/summary?from=2020-01-01&to=2022-01-01").set(auth(owner)).expect(400); // over a year
+    await http().get("/v1/reports/summary?from=nope").set(auth(owner)).expect(400);
+  });
+
+  it("exports CSV and logs the export", async () => {
+    const sales = await http().get("/v1/reports/export?type=sales").set(auth(owner)).expect(200);
+    expect(sales.headers["content-type"]).toMatch(/text\/csv/);
+    const lines = sales.text.trim().split("\r\n");
+    expect(lines[0]).toBe("Sold on,Member code,Member,Plan,Type,Starts,Ends,Status,Price (INR),Paid (INR),Receipt");
+    expect(lines).toHaveLength(3);
+    expect(sales.text).toContain("Renewal");
+    expect(sales.text).toContain("3000.00");
+    const pay = await http().get("/v1/reports/export?type=payments").set(auth(owner)).expect(200);
+    expect(pay.text.trim().split("\r\n")).toHaveLength(3);
+    await http().get("/v1/reports/export?type=members").set(auth(owner)).expect(400);
+    expect(await db.auditLog.count({ where: { action: "report.export" } })).toBe(2);
+  });
+});
