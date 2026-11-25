@@ -6,7 +6,7 @@ import ThemeToggle from "./ThemeToggle";
 
 const NAV = [
   { href: "/today", label: "Today", live: true }, { href: "/members", label: "Members", live: true },
-  { href: "/memberships", label: "Memberships" }, { href: "/payments", label: "Payments" }, { href: "/attendance", label: "Attendance" },
+  { href: "/memberships", label: "Memberships", live: true }, { href: "/payments", label: "Payments" }, { href: "/attendance", label: "Attendance" },
   { href: "/enquiries", label: "Enquiries" }, { href: "/trainers", label: "Trainers" }, { href: "/reports", label: "Reports" }, { href: "/settings", label: "Settings" },
 ];
 

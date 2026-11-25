@@ -11,7 +11,9 @@ type Ctx = { params: Promise<{ path: string[] }> };
  */
 async function handle(req: NextRequest, ctx: Ctx) {
   const { path } = await ctx.params;
-  if (path[0] !== "v1" || path[1] === "auth") return NextResponse.json({ message: "Not found" }, { status: 404 });
+  // Only the read-only "who am I" auth endpoint is exposed; login/refresh/logout have dedicated routes.
+  const isMe = path.length === 3 && path[1] === "auth" && path[2] === "me";
+  if (path[0] !== "v1" || (path[1] === "auth" && !isMe)) return NextResponse.json({ message: "Not found" }, { status: 404 });
   if (req.method !== "GET" && req.headers.get("x-requested-with") !== "lfg") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
 
   const body = req.method === "GET" || req.method === "HEAD" ? undefined : await req.text();
