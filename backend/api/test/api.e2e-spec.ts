@@ -114,6 +114,24 @@ describe("membership lifecycle", () => {
     await http().post(`/v1/attendance/${r.body.id}/check-out`).set(auth(admin)).expect(200);
   });
 
+  it("attendance day list and report", async () => {
+    await http().get("/v1/attendance").set(auth(trainer)).expect(403);
+    const day = (await http().get("/v1/attendance").set(auth(admin)).expect(200)).body;
+    expect(day.items).toHaveLength(1);
+    expect(day.items[0].member.memberCode).toBe(memberCode);
+    expect(day.items[0].checkOutAt).not.toBeNull(); // checked out in the previous test
+    expect(day.insideNow).toBe(0);
+    const other = (await http().get("/v1/attendance?date=2020-01-01").set(auth(admin)).expect(200)).body;
+    expect(other.items).toHaveLength(0);
+    await http().get("/v1/attendance?date=yesterday").set(auth(admin)).expect(400);
+    const rep = (await http().get("/v1/attendance/report?days=7").set(auth(admin)).expect(200)).body;
+    expect(rep).toMatchObject({ days: 7, totalVisits: 1, uniqueMembers: 1 });
+    expect(rep.daily).toHaveLength(7);
+    expect(rep.byHour).toHaveLength(24);
+    expect(rep.byHour.reduce((a: number, h: any) => a + h.count, 0)).toBe(1);
+    await http().get("/v1/attendance/report?days=1000").set(auth(admin)).expect(400);
+  });
+
   it("freeze blocks entry; unfreeze keeps the days", async () => {
     await http().post(`/v1/subscriptions/${subId}/freeze`).set(auth(admin)).send({ days: 10 }).expect(200);
     await db.attendance.deleteMany({});

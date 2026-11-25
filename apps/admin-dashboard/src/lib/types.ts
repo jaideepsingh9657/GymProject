@@ -36,3 +36,12 @@ export interface PaymentDetail {
   subscription: { startDate: string; endDate: string; plan: { name: string; durationDays: number } } | null;
   transactions: { method: string; type: string; amountPaise: number; createdAt: string }[];
 }
+
+export interface AttendanceDay {
+  date: string; insideNow: number;
+  items: { id: string; checkInAt: string; checkOutAt: string | null; method: string; member: { id: string; name: string; memberCode: string } }[];
+}
+export interface AttendanceReport {
+  days: number; from: string; to: string; totalVisits: number; uniqueMembers: number; avgPerDay: number; avgVisitMinutes: number | null;
+  daily: { date: string; count: number }[]; byHour: { hour: number; count: number }[];
+}

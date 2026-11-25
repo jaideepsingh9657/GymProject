@@ -1,8 +1,8 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { branchOf } from "../common/branch";
 import { AuthUser } from "../common/decorators";
-import { localToday } from "../common/dates";
+import { addDays, iso, localToday, parseDate } from "../common/dates";
 import { membershipState } from "../members/membership-state";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -41,5 +41,47 @@ export class AttendanceService {
 
   today(user: AuthUser) {
     return this.db.attendance.findMany({ where: { branchId: branchOf(user), localDate: localToday() }, orderBy: { checkInAt: "desc" }, select: { id: true, checkInAt: true, checkOutAt: true, method: true, member: { select: { id: true, name: true, memberCode: true } } } });
+  }
+
+  /** Visits for one branch-local day (default today), newest first, with who is still inside. */
+  async day(user: AuthUser, date?: string) {
+    const d = date ? parseDate(date) : localToday();
+    if (Number.isNaN(d.getTime())) throw new BadRequestException("Invalid date");
+    const rows = await this.db.attendance.findMany({
+      where: { branchId: branchOf(user), localDate: d }, orderBy: { checkInAt: "desc" },
+      select: { id: true, checkInAt: true, checkOutAt: true, method: true, member: { select: { id: true, name: true, memberCode: true } } },
+    });
+    return { date: iso(d), insideNow: rows.filter((r) => !r.checkOutAt).length, items: rows };
+  }
+
+  /** Daily counts and busiest hours (branch-local) for the last N days. */
+  async report(user: AuthUser, days = 30) {
+    const today = localToday();
+    const from = addDays(today, -(days - 1));
+    const rows = await this.db.attendance.findMany({
+      where: { branchId: branchOf(user), localDate: { gte: from, lte: today } },
+      select: { localDate: true, checkInAt: true, checkOutAt: true, memberId: true },
+    });
+    const daily = new Map<string, number>();
+    for (let i = 0; i < days; i++) daily.set(iso(addDays(from, i)), 0);
+    const hours = new Array(24).fill(0);
+    const hourFmt = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", hour12: false });
+    let durMs = 0, durN = 0;
+    for (const r of rows) {
+      const k = iso(r.localDate);
+      daily.set(k, (daily.get(k) ?? 0) + 1);
+      hours[Number(hourFmt.format(r.checkInAt)) % 24]++;
+      // Visits over 6h are almost always a forgotten check-out; counting them would wreck the average.
+      if (r.checkOutAt && r.checkOutAt.getTime() - r.checkInAt.getTime() <= 6 * 3_600_000) { durMs += r.checkOutAt.getTime() - r.checkInAt.getTime(); durN++; }
+    }
+    return {
+      days, from: iso(from), to: iso(today),
+      totalVisits: rows.length,
+      uniqueMembers: new Set(rows.map((r) => r.memberId)).size,
+      avgPerDay: Math.round((rows.length / days) * 10) / 10,
+      avgVisitMinutes: durN ? Math.round(durMs / durN / 60_000) : null,
+      daily: [...daily].map(([date, count]) => ({ date, count })),
+      byHour: hours.map((count, hour) => ({ hour, count })),
+    };
   }
 }
