@@ -12,7 +12,9 @@ import { HealthController } from "./health/health.controller";
 import { PrismaModule } from "./prisma/prisma.service";
 import { EnquiriesController } from "./enquiries/enquiries.controller";
 import { EnquiriesService } from "./enquiries/enquiries.service";
-import { PublicController, PublicService } from "./public/public.controller";
+import { PublicController, PublicService, PublicTrainersService } from "./public/public.controller";
+import { TrainersController } from "./trainers/trainers.controller";
+import { TrainersService } from "./trainers/trainers.service";
 import { ReportsController } from "./reports/reports.controller";
 import { ReportsService } from "./reports/reports.service";
 import { RbacModule } from "./rbac/rbac.module";
@@ -46,9 +48,9 @@ import { SubscriptionsService } from "./subscriptions/subscriptions.service";
     }),
     PrismaModule, AuditModule, RbacModule, AuthModule,
   ],
-  controllers: [HealthController, PlansController, MembersController, SubscriptionsController, PaymentsController, AttendanceController, DashboardController, EnquiriesController, PublicController, ReportsController],
+  controllers: [HealthController, PlansController, MembersController, SubscriptionsController, PaymentsController, AttendanceController, DashboardController, EnquiriesController, PublicController, ReportsController, TrainersController],
   providers: [
-    PlansService, MembersService, SubscriptionsService, PaymentsService, AttendanceService, DashboardService, EnquiriesService, PublicService, ReportsService,
+    PlansService, MembersService, SubscriptionsService, PaymentsService, AttendanceService, DashboardService, EnquiriesService, PublicService, PublicTrainersService, ReportsService, TrainersService,
     // Order matters: rate-limit, then authenticate, then authorize.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },

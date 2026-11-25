@@ -4,11 +4,11 @@ import * as argon2 from "argon2";
 
 const PERMISSIONS: Record<string, string[]> = {
   OWNER: ["*"],
-  ADMIN: ["members:read", "members:write", "plans:read", "subscriptions:write", "payments:read", "payments:write", "attendance:read", "attendance:write", "dashboard:read", "enquiries:read", "enquiries:write", "trainers:read", "announcements:write"],
+  ADMIN: ["members:read", "members:write", "plans:read", "subscriptions:write", "payments:read", "payments:write", "attendance:read", "attendance:write", "dashboard:read", "enquiries:read", "enquiries:write", "trainers:read", "trainers:assign", "announcements:write"],
   TRAINER: ["members:read:assigned", "workouts:read", "workouts:write", "diets:read", "diets:write", "progress:write", "exercises:read", "exercises:write"],
   MEMBER: ["self:read", "self:write"],
 };
-const ALL = [...new Set(Object.values(PERMISSIONS).flat().filter((p) => p !== "*")), "plans:write", "dashboard:read", "payments:refund", "reports:read", "settings:write", "users:manage", "audit:read", "trainers:write"];
+const ALL = [...new Set(Object.values(PERMISSIONS).flat().filter((p) => p !== "*")), "plans:write", "dashboard:read", "payments:refund", "reports:read", "settings:write", "users:manage", "audit:read", "trainers:write", "trainers:assign"];
 
 export async function seed(db: PrismaClient, email?: string, password?: string) {
   if (!email || !password || password.length < 12) throw new Error("Set SEED_OWNER_EMAIL and SEED_OWNER_PASSWORD (min 12 chars)");

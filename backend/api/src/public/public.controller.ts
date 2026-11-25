@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Injectable, Post, Req } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Injectable, Post, Req } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { Public } from "../common/decorators";
 import { normalizePhone } from "../common/phone";
@@ -25,9 +25,26 @@ export class PublicService {
   }
 }
 
+/** Public trainer cards for the website: only opted-in, active trainers, and no contact details. */
+@Injectable()
+export class PublicTrainersService {
+  constructor(private readonly db: PrismaService) {}
+
+  async list() {
+    const rows = await this.db.trainer.findMany({
+      where: { isPublic: true, deletedAt: null, user: { status: "ACTIVE", deletedAt: null } }, orderBy: { name: "asc" },
+      select: { name: true, qualifications: true, specializations: true, experienceYears: true, bio: true },
+    });
+    return rows;
+  }
+}
+
 @Controller("public")
 export class PublicController {
-  constructor(private readonly svc: PublicService) {}
+  constructor(private readonly svc: PublicService, private readonly trainers: PublicTrainersService) {}
+
+  @Public() @Get("trainers")
+  trainersList() { return this.trainers.list(); }
 
   @Public() @Throttle({ default: { limit: 5, ttl: 60_000 } }) @HttpCode(202) @Post("enquiries")
   async enquiry(@Body() dto: PublicEnquiryDto, @Req() req: any) {

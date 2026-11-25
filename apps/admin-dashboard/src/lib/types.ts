@@ -69,3 +69,10 @@ export interface ReportSummary {
   salesByPlan: { plan: string; count: number; revenuePaise: number }[];
   memberGrowth: { month: string; joins: number }[];
 }
+
+export interface TrainerRow {
+  id: string; name: string; email: string | null; phone: string | null; qualifications: string | null; specializations: string[];
+  experienceYears: number | null; bio: string | null; availability: string | null; isPublic: boolean; isActive: boolean;
+  lastLoginAt: string | null; memberCount: number;
+}
+export interface TrainerDetail extends TrainerRow { members: { id: string; startsOn: string; member: { id: string; name: string; memberCode: string } }[] }

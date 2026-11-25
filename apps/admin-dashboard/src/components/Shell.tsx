@@ -7,7 +7,7 @@ import ThemeToggle from "./ThemeToggle";
 const NAV = [
   { href: "/today", label: "Today", live: true }, { href: "/members", label: "Members", live: true },
   { href: "/memberships", label: "Memberships", live: true }, { href: "/payments", label: "Payments", live: true }, { href: "/attendance", label: "Attendance", live: true },
-  { href: "/enquiries", label: "Enquiries", live: true }, { href: "/trainers", label: "Trainers" }, { href: "/reports", label: "Reports", live: true }, { href: "/settings", label: "Settings" },
+  { href: "/enquiries", label: "Enquiries", live: true }, { href: "/trainers", label: "Trainers", live: true }, { href: "/reports", label: "Reports", live: true }, { href: "/settings", label: "Settings" },
 ];
 
 export default function Shell({ children }: { children: React.ReactNode }) {
